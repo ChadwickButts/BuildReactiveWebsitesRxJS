@@ -11,21 +11,20 @@ let startClick$ = fromEvent(startButton, 'click');
 let stopClick$ = fromEvent(stopButton, 'click');
 let lapClick$ = fromEvent(lapButton, 'click');
 
-let tenthSecondCustom$ = new Observable(observer => {
-    let counter = 0;
-    observer.next(counter);
+// let tenthSecondCustom$ = new Observable(observer => {
+//     let counter = 0;
+//     observer.next(counter);
 
-    let intervalTimer = setInterval(() => {
-        counter++;
-        observer.next(counter);
-    }, 100);
+//     let intervalTimer = setInterval(() => {
+//         counter++;
+//         observer.next(counter);
+//     }, 100);
 
-    return function unsubscribe() { clearInterval(intervalTimer) };
-});
+//     return function unsubscribe() { clearInterval(intervalTimer) };
+// });
 
 // multiple clicks of start button causes multiple streams to start 
 startClick$.subscribe(() => {
-    let count = 0;
     let lap = false;
 
     lapClick$.subscribe(() => {
