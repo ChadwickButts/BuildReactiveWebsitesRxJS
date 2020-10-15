@@ -22,7 +22,7 @@ let keyUp$ = fromEvent(textbox, 'keyup').pipe(
         )
     )
 );
-keyUp$.subscribe(translated => console.log(translated));
+keyUp$.subscribe(translated => results.innerText = translated);
 
 // Reduce example
 
