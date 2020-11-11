@@ -10,4 +10,15 @@ for (let i = 0; i < 128; i++) {
   arrayOfRequests.push(ajax(endpoint + i));
 }
 
-let loadingRequestsBad$ = merge(...arrayOfRequests);
+let loadingRequestsBad$ = merge(...arrayOfRequests).pipe(
+  scan((prev) => prev + (100 / arrayOfRequests.length), 0)
+).subscribe(
+  percentDone => {
+    progressBar.style.width = percentDone + '%';
+  },
+  err => { 
+    console.log(err);
+    msgArea.innerText = 'Something went wrong, please try again';
+    msgArea.style.display = 'block';
+  }
+);
