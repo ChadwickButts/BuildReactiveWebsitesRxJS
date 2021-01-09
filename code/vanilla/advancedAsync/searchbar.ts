@@ -1,6 +1,6 @@
 import { fromEvent, merge, of } from 'rxjs';
 import { ajax } from 'rxjs/ajax';
-import { map, filter, distinctUntilChanged, debounceTime, tap, switchMap, catchError } from 'rxjs/operators';
+import { map, filter, distinctUntilChanged, debounceTime, tap, switchMap, catchError, pluck } from 'rxjs/operators';
 
 
 let endpoint = `http://localhost:3000/api/advancedAsync/stackoverflow/`;
@@ -21,3 +21,21 @@ function displayResults(results) {
   });
   resultsArea.appendChild(listEl);
 }
+
+fromEvent(searchBar, 'keyup').pipe(
+  pluck('target', 'value'),
+  filter((query: string) => query.length > 3),
+  distinctUntilChanged(),
+  debounceTime(333),
+  tap(() => loadingEl.style.display = 'block'),
+  switchMap(query => ajax(endpoint + query)),
+  catchError((error, caught$) => merge(of(error), caught$)),
+  tap(() => loadingEl.style.display = 'none')
+).subscribe(function updatePageOrErr(results){
+  if (results.error) {
+    alert(results.error);
+  } else {
+    displayResults(results.data)
+  }
+}, err => alert(err.message)
+)

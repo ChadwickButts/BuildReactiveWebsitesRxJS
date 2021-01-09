@@ -1,7 +1,7 @@
 declare var Chart;
 
 import { merge, fromEvent, of, combineLatest } from 'rxjs';
-import { scan, map } from 'rxjs/operators';
+import { scan, map, tap } from 'rxjs/operators';
 import { webSocket } from 'rxjs/webSocket';
 
 let config = {
@@ -53,3 +53,75 @@ let abcEl = <HTMLElement>document.querySelector('.abc');
 let defEl = <HTMLElement>document.querySelector('.def');
 let ghiEl = <HTMLElement>document.querySelector('.ghi');
 let jklEl = <HTMLElement>document.querySelector('.jkl');
+
+let endpoint = 'ws://localhost:3000/api/advancedAsync/stock-ws';
+let stockStream$ = webSocket(endpoint).pipe(
+  scan((accumulatedData: any, nextItem: any) => {
+    accumulatedData.push(nextItem);
+    if (accumulatedData.length > 10) {
+      accumulatedData.shift();
+    }
+    return accumulatedData;
+  }, []),
+  map(newDataSet => {
+    let intermediary = newDataSet.reduce((prev, datum) => {
+      datum.forEach(d => {
+        if (!prev[d.label]) {
+          prev[d.label] = [];
+        }
+        prev[d.label].push(d.price);
+      })
+      return prev;
+    }, {});
+    return Object.keys(intermediary).map(key => {
+      return {
+        label: key,
+        data: intermediary[key],
+        fill: false,
+        backgroundColor: colorMap[key],
+        borderColor: colorMap[key]
+      }
+    })
+  }),
+);
+
+function makeCheckboxStream(checkboxEl, stockName) {
+  return merge(
+    fromEvent(checkboxEl, 'change'),
+    of({target: { checked: true }})
+  )
+  .pipe(
+    map(e => e.target.checked), 
+    map(isEnabled => ({
+      isEnabled,
+      stock: stockName
+    }))
+  );
+}
+
+let settings$ = combineLatest(
+  makeCheckboxStream(abcEl, 'abc'),
+  makeCheckboxStream(defEl, 'def'),
+  makeCheckboxStream(ghiEl, 'ghi'),
+  makeCheckboxStream(jklEl, 'jkl')
+).pipe(
+  map(stockBoxes => { 
+    return stockBoxes
+    .filter(stockBox => stockBox.isEnabled === true)
+    .map(stockBox => stockBox.stock);
+    })
+);
+
+combineLatest(
+  settings$,
+  stockStream$,
+).pipe(
+  map(stocks => {
+    return stocks[1].filter(stockHistory => {
+      return stocks[0].includes(stockHistory.label.toLowerCase());
+    })
+  })
+).subscribe(newDataSet => {
+  config.data.datasets = newDataSet;
+  stockChart.update();
+}, err => console.error(err))
